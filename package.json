@@ -1,0 +1,19 @@
+{
+  "name": "robba",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^2.19.0",
+    "exif": "^0.6.0",
+    "moment": "^2.24.0",
+    "moment-timezone": "^0.5.23",
+    "nodemon": "^1.18.10",
+    "suncalc": "^1.8.0"
+  }
+}
