@@ -5,25 +5,65 @@ const SunCalc = require('suncalc');
 const fs = require('fs');
 const path = require('path');
 
-const latitude = 59.347652
-const longitude = 18.038085
+const latitude = 59.347652;
+const longitude = 18.038085;
+const FOLDERNAME = 'Removed_images';
 
 
 // List all files in a directory in Node.js recursively in a synchronous fashion
-const walkSync = (dir, filelist = []) => {
-    const files = fs.readdirSync(dir);
-    files.forEach(file => {
-        if (fs.statSync(path.join(dir, file)).isDirectory()) {
-            filelist = walkSync(path.join(dir, file), filelist);
-        }
-        else {
-            filelist.push(path.join(dir, file));
-        }
-    });
-    return filelist;
+const walkSync = (dir, a) => {
+	try {
+	    const files = fs.readdirSync(dir);
+	    let day;
+		let sunriseEnd;
+		let sunsetStart;
+
+		//Trying to create a new folder for removed images
+		const removeFolder = path.join(dir, FOLDERNAME);
+		if (!fs.existsSync(removeFolder) && a.move){
+			fs.mkdirSync(removeFolder)
+		}
+
+		if (a.verbose) console.log('Processing ', dir);
+
+	    files.forEach(async file => {
+	    	const filePath = path.join(dir, file); 
+	        if (fs.statSync(filePath).isDirectory()) {
+	        	// Process Directory
+	            walkSync(filePath, a);
+	        } else {
+	        	try {
+					const data = await getExifAsync(filePath)
+					const createDate = moment(data.exif.CreateDate, 'YYYY:MM:DD HH:mm:ss').tz('Europe/Stockholm');
+					// const exposureTime = data.exif.ExposureTime; Mabye later....if needed.
+		        	
+		        	if (!day || !day.isSame(createDate ,'day')) {
+						day = createDate;
+						const { sunrise, sunset } = getSun(createDate);
+						sunriseEnd = sunrise;
+						sunsetStart = sunset;
+						if (a.verbose) console.log(`☀️  ${sunriseEnd.format('YYYY-MM-DD')}  👆 ${sunriseEnd.format('HH:mm:ss')} 👇 ${sunsetStart.format('HH:mm:ss')}`)
+					}
+
+					if (!createDate.isBetween(sunriseEnd, sunsetStart)) {
+						console.log(file);
+						if (a.move) {
+							fs.renameSync(filePath, path.join(removeFolder, file));
+						}
+					}
+	        	} catch (err) {
+	        		if (a.verbose) {
+	        			console.error('Error reading file ', file)
+	        		}
+	        	}
+	        }
+	    });
+	} catch(err) {
+		console.error('Error processing ', dir, err);
+	}
 };
 
-const getExifAsync = (path) => new Promise((resolve, reject) => {
+const getExifAsync = path => new Promise((resolve, reject) => {
 	try {
 	    new ExifImage({ image : path }, (error, exifData) => {
 	        if (error)
@@ -45,42 +85,7 @@ const getSun = date => {
 
 program
 .arguments('[path]')
-// .option('-d, --delete', 'Delete files')
+.option('-m, --move', 'Move files')
 .option('-v, --verbose', 'Verbose mode')
-.action((path, a, b) => {
-	const files = walkSync(path);
-	let day;
-	let sunriseEnd;
-	let sunsetStart;
-
-	//Trying to create a new folder for removed images
-	const folderName = 'Removed_images'
-	try {
-  		if (!fs.existsSync(folderName)){
-    		fs.mkdirSync(folderName)
-  		}
-	} catch (err) {
-  		console.error(err)
-	}
-
-	files.forEach(async file => {
-		const data = await getExifAsync(file)
-		const createDate = moment(data.exif.CreateDate, 'YYYY:MM:DD HH:mm:ss').tz('Europe/Stockholm');
-		// const exposureTime = data.exif.ExposureTime; Mabye later....if needed.
-
-		if (!day || !day.isSame(createDate ,'day')) {
-			day = createDate;
-			const { sunrise, sunset } = getSun(createDate);
-			sunriseEnd = sunrise;
-			sunsetStart = sunset;
-			if (a.verbose) {
-				console.log(`☀️  👆 ${sunriseEnd.format('HH:mm:ss')} 👇 ${sunsetStart.format('HH:mm:ss')}`)
-			}
-		}
-		if (!createDate.isBetween(sunriseEnd, sunsetStart)) {
-			console.log(file);
-			fs.renameSync(file, "Removed_images")
-		}
-	})
-})
+.action((path, a) => walkSync(path, a))
 .parse(process.argv);
