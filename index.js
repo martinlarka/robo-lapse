@@ -37,9 +37,9 @@ const getExifAsync = (path) => new Promise((resolve, reject) => {
 });
 
 const getSun = date => {
-	const {sunriseEnd, sunsetStart} = SunCalc.getTimes(date.toDate(), latitude, longitude);
-	sunrise = moment(sunriseEnd);
-	sunset = moment(sunsetStart);
+	let {sunrise, sunset} = SunCalc.getTimes(date.toDate(), latitude, longitude);
+	sunrise = moment(sunrise);
+	sunset = moment(sunset);
 	return {sunrise, sunset};
 };
 
