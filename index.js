@@ -37,9 +37,9 @@ const getExifAsync = (path) => new Promise((resolve, reject) => {
 });
 
 const getSun = date => {
-	let {sunrise, sunset} = SunCalc.getTimes(date.toDate(), latitude, longitude);
-	sunrise = moment(sunrise);
-	sunset = moment(sunset);
+	let {sunriseEnd, sunset} = SunCalc.getTimes(date.toDate(), latitude, longitude);
+	sunrise = moment(sunriseEnd).add(1, 'hours');
+	sunset = moment(sunset).add(1, 'hours');;
 	return {sunrise, sunset};
 };
 
@@ -52,9 +52,22 @@ program
 	let day;
 	let sunriseEnd;
 	let sunsetStart;
+
+	//Trying to create a new folder for removed images
+	const folderName = 'Removed_images'
+	try {
+  		if (!fs.existsSync(folderName)){
+    		fs.mkdirSync(folderName)
+  		}
+	} catch (err) {
+  		console.error(err)
+	}
+
 	files.forEach(async file => {
 		const data = await getExifAsync(file)
 		const createDate = moment(data.exif.CreateDate, 'YYYY:MM:DD HH:mm:ss').tz('Europe/Stockholm');
+		// const exposureTime = data.exif.ExposureTime; Mabye later....if needed.
+
 		if (!day || !day.isSame(createDate ,'day')) {
 			day = createDate;
 			const { sunrise, sunset } = getSun(createDate);
@@ -66,6 +79,7 @@ program
 		}
 		if (!createDate.isBetween(sunriseEnd, sunsetStart)) {
 			console.log(file);
+			fs.renameSync(file, "Removed_images")
 		}
 	})
 })
