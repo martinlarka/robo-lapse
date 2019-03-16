@@ -34,7 +34,6 @@ const walkSync = (dir, a) => {
 	        } else {
 	        	try {
 					const data = await getExifAsync(filePath)
-					fs.close();
 					const createDate = moment(data.exif.CreateDate, 'YYYY:MM:DD HH:mm:ss').tz('Europe/Stockholm');
 					// const exposureTime = data.exif.ExposureTime; Mabye later....if needed.
 		        	
