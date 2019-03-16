@@ -2,7 +2,7 @@ const moment = require('moment-timezone');
 const program = require('commander');
 const ExifImage = require('exif').ExifImage;
 const SunCalc = require('suncalc');
-const fs = require('fs');
+const fs = require('graceful-fs');
 const path = require('path');
 
 const latitude = 59.347652;
@@ -28,10 +28,7 @@ const walkSync = (dir, a) => {
 
 	    files.forEach(async file => {
 	    	const filePath = path.join(dir, file); 
-	        if (fs.statSync(filePath).isDirectory()) {
-	        	// Process Directory
-	            walkSync(filePath, a);
-	        } else {
+	        if (fs.statSync(filePath).isFile()) {
 	        	try {
 					const data = await getExifAsync(filePath)
 					const createDate = moment(data.exif.CreateDate, 'YYYY:MM:DD HH:mm:ss').tz('Europe/Stockholm');
@@ -56,6 +53,9 @@ const walkSync = (dir, a) => {
 	        			console.error('Error reading file ', file)
 	        		}
 	        	}
+	        } else if (filePath.indexOf(FOLDERNAME) < 0) {
+	        	// Process Directory
+	            walkSync(filePath, a);
 	        }
 	    });
 	} catch(err) {
@@ -64,16 +64,15 @@ const walkSync = (dir, a) => {
 };
 
 const getExifAsync = path => new Promise((resolve, reject) => {
-	try {
-	    new ExifImage({ image : path }, (error, exifData) => {
-	        if (error)
+	fs.readFile(path, (err, image) => {
+	  	if (err) reject(err.message);
+		new ExifImage({image}, (error, data) => {
+			if (error)
 	    		reject(error.message);
-	        else
-	            resolve(exifData);
-	    });
-	} catch (error) {
-	    rejecT(error);
-	}
+			else
+			    resolve(data);
+		});
+	});
 });
 
 const getSun = date => {
@@ -87,5 +86,11 @@ program
 .arguments('[path]')
 .option('-m, --move', 'Move files')
 .option('-v, --verbose', 'Verbose mode')
-.action((path, a) => walkSync(path, a))
+.action((path, a) => {
+	if (path) {
+		walkSync(path, a)
+	} else {
+		console.error('No path provided')
+	}
+})
 .parse(process.argv);

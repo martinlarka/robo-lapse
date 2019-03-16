@@ -10,7 +10,8 @@
   "license": "ISC",
   "dependencies": {
     "commander": "^2.19.0",
-    "exif": "git+https://git@github.com/martinlarka/node-exif.git",
+    "exif": "^0.6.0",
+    "graceful-fs": "^4.1.15",
     "moment": "^2.24.0",
     "moment-timezone": "^0.5.23",
     "nodemon": "^1.18.10",
